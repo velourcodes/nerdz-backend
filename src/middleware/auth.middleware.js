@@ -8,25 +8,51 @@ export const JWTVerify = asyncHandler(async (req, res, next) => {
         req.cookies?.accessToken ||
         req.header("Authorization")?.replace("Bearer ", "");
 
-
-    /* The part after || is there incase the user is sending tokens as header from mobile phone, 
-        Token general format: Bearer <token> - hence we did the replace to get the value of token*/
-
-    if (!token) throw new ApiError(401, "Unauthorized Request!");
+    if (!token) {
+        throw new ApiError(401, "Unauthorized Request!");
+    }
 
     try {
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        req.user = await User.findById(decodedToken?._id).select(
+
+        const user = await User.findById(decodedToken._id).select(
             "-password -refreshToken"
         );
+
+        if (!user) {
+            throw new ApiError(401, "Invalid Access Token!");
+        }
+
+        // Attach user + role to request
+        req.user = {
+            _id: user._id,
+            email: user.email,
+            username: user.username,
+            role: user.role, // 👈 CRITICAL
+        };
+
+        next();
     } catch (error) {
         if (error.name === "TokenExpiredError") {
             throw new ApiError(498, "Token Expired");
         }
         throw new ApiError(401, "Invalid Access Token");
     }
-
-    if (!req.user) throw new ApiError(401, "Invalid Access Token!");
-
-    next();
 });
+
+export const authorizeRoles = (...allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            throw new ApiError(403, "Access denied");
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            throw new ApiError(
+                403,
+                `Role '${req.user.role}' is not allowed to access this resource`
+            );
+        }
+
+        next();
+    };
+};

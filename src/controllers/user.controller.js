@@ -6,60 +6,51 @@ import jwt from "jsonwebtoken";
 import {cookieOptions} from "../config/cookies.js";
 
 const registerUser = asyncHandler(async (req, res) => {
-    // get user details from frontend
-    // validation - not empty
-    // check if user already exists: username, email
-    // check for images, check for avatar
-    // upload them to cloudinary, avatar
-    // create user object - create entry in db
-    // remove password and refresh token field from response
-    // check for user creation
-    // return res
+    const { username, email, password, role, specialization } = req.body;
 
-    const { username, email, password } = req.body;
-    if ([username, email, password].some((field) => field?.trim() === "")) {
+    if ([username, email, password].some(f => !f?.trim())) {
         throw new ApiError(400, "All fields are mandatory");
     }
 
-    const Username = username.toLowerCase();
-    const Email = email.toLowerCase();
+    if (role === "DOCTOR" && !specialization) {
+        throw new ApiError(400, "Doctor specialization is required");
+    }
 
     const existingUser = await User.findOne({
-        $or: [{ username: Username }, { email: Email }],
+        $or: [
+            { username: username.toLowerCase() },
+            { email: email.toLowerCase() },
+        ],
     });
 
-    if (existingUser)
-        throw new ApiError(
-            409,
-            "A user with the following email or username already exists!"
-        );
+    if (existingUser) {
+        throw new ApiError(409, "User already exists");
+    }
 
     const user = await User.create({
-        username: Username,
-        email: Email,
+        username: username.toLowerCase(),
+        email: email.toLowerCase(),
         password,
+        role: role || "PATIENT",
+        doctorProfile:
+            role === "DOCTOR"
+                ? {
+                      specialization,
+                      isAvailable: true,
+                  }
+                : undefined,
     });
 
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     );
 
-    if (!createdUser)
-        throw new ApiError(
-            500,
-            "Something went wrong during registering new user!"
-        );
-
     return res
         .status(201)
-        .json(
-            new ApiResponse(
-                200,
-                createdUser,
-                "New user registered successfully!"
-            )
-        );
+        .json(new ApiResponse(201, createdUser, "User registered"));
 });
+
+
 
 const loginUser = asyncHandler(async (req, res) => {
     // fetch user details - username password

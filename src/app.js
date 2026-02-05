@@ -16,7 +16,13 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 import userRoutes from "./routes/user.routes.js";
+import wearableRouter from "./routes/wearable.routes.js";
+import caseRouter from "./routes/case.routes.js";
+import reportRouter from "./routes/report.routes.js";
 
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/wearable", wearableRouter);
+app.use("/api/v1/case", caseRouter);
+app.use("/api/v1/report", reportRouter);
 
 export { app };
