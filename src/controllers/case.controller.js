@@ -1,11 +1,12 @@
 import { Case } from "../models/case.model.js";
+import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 /**
  * PATIENT
- * AI creates a case based on wearable + report signals
+ * AI creates a case
  */
 const createCaseFromAI = asyncHandler(async (req, res) => {
     if (req.user.role !== "PATIENT") {
@@ -21,35 +22,42 @@ const createCaseFromAI = asyncHandler(async (req, res) => {
         status: "OPEN",
     });
 
+    // 🔁 AUTO ASSIGN AFTER CREATION
+    await autoAssignDoctor(newCase);
+
     return res
         .status(201)
         .json(new ApiResponse(201, newCase, "Case created"));
 });
 
 /**
- * SYSTEM / ADMIN
- * Assigns doctor (general or specialist)
+ * INTERNAL — AI / SYSTEM LOGIC
+ * Automatically assigns doctor
  */
-const assignDoctor = asyncHandler(async (req, res) => {
-    const { caseId, doctorId } = req.body;
+const autoAssignDoctor = async (caseDoc) => {
+    let doctorQuery = {
+        role: "DOCTOR",
+        "doctorProfile.isAvailable": true,
+    };
 
-    const updatedCase = await Case.findByIdAndUpdate(
-        caseId,
-        {
-            assignedDoctorId: doctorId,
-            status: "IN_REVIEW",
-        },
-        { new: true }
-    );
-
-    if (!updatedCase) {
-        throw new ApiError(404, "Case not found");
+    if (caseDoc.aiCondition === "CRITICAL") {
+        doctorQuery["doctorProfile.specialization"] =
+            caseDoc.specialistRequired;
     }
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, updatedCase, "Doctor assigned"));
-});
+    const doctors = await User.find(doctorQuery);
+
+    if (!doctors.length) return;
+
+    // 🎲 Random assignment
+    const assignedDoctor =
+        doctors[Math.floor(Math.random() * doctors.length)];
+
+    await Case.findByIdAndUpdate(caseDoc._id, {
+        assignedDoctorId: assignedDoctor._id,
+        status: "IN_REVIEW",
+    });
+};
 
 /**
  * DOCTOR
@@ -62,8 +70,11 @@ const doctorSetClinicalAttention = asyncHandler(async (req, res) => {
 
     const { caseId, clinicalAttention } = req.body;
 
-    const updatedCase = await Case.findByIdAndUpdate(
-        caseId,
+    const updatedCase = await Case.findOneAndUpdate(
+        {
+            _id: caseId,
+            assignedDoctorId: req.user._id,
+        },
         {
             clinicalAttention,
             status: "CLOSED",
@@ -72,22 +83,19 @@ const doctorSetClinicalAttention = asyncHandler(async (req, res) => {
     );
 
     if (!updatedCase) {
-        throw new ApiError(404, "Case not found");
+        throw new ApiError(404, "Case not found or unauthorized");
     }
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                updatedCase,
-                "Clinical attention recorded"
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            updatedCase,
+            "Clinical attention recorded"
+        )
+    );
 });
 
 export {
     createCaseFromAI,
-    assignDoctor,
     doctorSetClinicalAttention,
 };

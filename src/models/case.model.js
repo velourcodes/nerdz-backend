@@ -25,7 +25,7 @@ const caseSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["OPEN", "IN_REVIEW", "CLOSED"],
+            enum: ["OPEN", "AUTO_ASSIGNED", "IN_REVIEW", "CLOSED"],
             default: "OPEN",
         },
     },

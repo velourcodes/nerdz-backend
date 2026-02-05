@@ -1,14 +1,15 @@
-import { asyncHandler } from "../utils/AsyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import jwt from "jsonwebtoken";
-import {cookieOptions} from "../config/cookies.js";
+import { cookieOptions } from "../config/cookies.js";
+import { ENV } from "../config/env.js";
 
 const registerUser = asyncHandler(async (req, res) => {
     const { username, email, password, role, specialization } = req.body;
 
-    if ([username, email, password].some(f => !f?.trim())) {
+    if ([username, email, password].some((f) => !f?.trim())) {
         throw new ApiError(400, "All fields are mandatory");
     }
 
@@ -49,8 +50,6 @@ const registerUser = asyncHandler(async (req, res) => {
         .status(201)
         .json(new ApiResponse(201, createdUser, "User registered"));
 });
-
-
 
 const loginUser = asyncHandler(async (req, res) => {
     // fetch user details - username password
@@ -183,9 +182,7 @@ const updatePassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-    const currentUser = req.user?.toObject();
-    delete currentUser.outfits;
-    // Tho this req.user is an object as per typeof but, it is a special object not a plain JS obj, it is verified when i checked with .$__ hence without toObject(), deletion didnt work
+    const currentUser = req.user;
 
     if (!currentUser) throw new ApiError(404, "User not found");
 
