@@ -1,3 +1,6 @@
+import DoctorFind from "./DoctorFind";
+import { Link } from "react-router-dom";
+
 export function AIAdvisory() {
   return (
     <section className="bg-red-50 p-6 rounded-2xl">
@@ -5,9 +8,12 @@ export function AIAdvisory() {
       <p className="mt-2 text-sm text-red-600">
         Thyroid levels appear critical. Specialist consultation is recommended.
       </p>
-      <button className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm">
-        Connect Specialist
-      </button>
+
+      <Link to="DoctorFind">
+        <button className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm">
+          Connect Specialist
+        </button>
+      </Link>
     </section>
   );
 }

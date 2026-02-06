@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 import TakeReport from "./components/TakeReport";
+import DoctorFind from "./components/DoctorFind";
 
 function App() {
   return (
@@ -16,6 +17,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard/reports" element={<TakeReport />}></Route>
+        <Route path="/dashboard/find" element={<TakeReport />}></Route>
+        <Route path="/dashboard/DoctorFind" element={<DoctorFind />}></Route>
+
         <Route path="/dashboard" element={<Dashboard />}></Route>
 
         {/* 404 fallback */}
